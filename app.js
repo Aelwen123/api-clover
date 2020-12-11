@@ -6,9 +6,14 @@ const mongoose = require('mongoose');
 
 const routeCustomer = require('./API/routes/customer');
 const routePayment = require('./API/routes/payment');
-const routeMerchant = require('./API/routes/merchant');
+const routerDebit = require('./API/routes/debitcard');
+const routerCredit = require('./API/routes/creditcard')
+const routerAccountType = require('./API/routes/accounttype')
+const routerAccount = require('./API/routes/account')
+const routerLimit = require('./API/routes/limit')
+const routerThirdParty = require('./API/routes/thirdcompany')
 
-mongoose.connect('mongodb+srv://gajek:gajekHebat123@gajek.yqpjd.mongodb.net/<dbname>?retryWrites=true&w=majority', {
+mongoose.connect('mongodb+srv://admin:' + process.env.MONGO_ATLAS_PW + '@bankapp.ruomw.mongodb.net/<dbname>?retryWrites=true&w=majority', {
     useMongoClient: true
 })
 
@@ -32,7 +37,12 @@ app.use((req, res, next) => {
 // Routes untuk handle request
 app.use('/customer', routeCustomer);
 app.use('/payment', routePayment);
-app.use('/merchant', routeMerchant);
+app.use('/debit', routerDebit)
+app.use('/credit', routerCredit)
+app.use('/accounttype', routerAccountType)
+app.use('/account', routerAccount)
+app.use('/limit', routerLimit)
+app.use('/thirdparty', routerThirdParty)
 
 app.use((req, res, next) => {
     const error = new Error('Not found');

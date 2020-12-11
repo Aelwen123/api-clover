@@ -13,102 +13,79 @@ router.get('/', (req, res, next) => {
     })
 })
 
-router.post('/getCustomer', checkAuth, (req, res, next) => {
-    Customer.findOne({phonenumber: req.body.phonenumber}).select('-_id -securitypin').exec().then(result => {
+router.get('/getCustomer/:CIF', (req, res, next) => {
+    Customer.findOne({CIF: req.params.CIF}).select('name').exec().then(result => {
         res.status(200).json(result)
     })
 })
 
-//Router to get customer balance
-router.post('/balance', checkAuth, (req, res, next) => {
-    Customer.findOne({phonenumber: req.body.phonenumber}).select('name balance -_id').exec().then(result => {
-        res.status(200).json(result);
-    })
-})
-
-//Public Router to get customer balance
-router.get('/open_API_balance', (req, res, next) => {
-    Customer.find({phonenumber: req.body.phonenumber}).select('name balance -_id').exec().then(result => {
-        res.status(200).json(result);
-    })
-})
-
-//Router for customers to sign up
-router.post('/signup', (req, res, next) => {
-    Customer.find({phonenumber: req.body.phonenumber}).exec().then(user => {
-        if(user.length >=1){
-            return res.status(409).json({
-                message: "User exists!"
-            });
-        } else{
-            bcrypt.hash(req.body.securitypin, 10, (err, hash) => {
-                if(err){
-                    return res.status(500).json({
-                        error: err
-                    });
-                } else {
-                    const customer = new Customer({
-                        _id: new mongoose.Types.ObjectId(),
-                        name: req.body.name,
-                        phonenumber: req.body.phonenumber,
-                        email: req.body.email,
-                        securitypin: hash,
-                        balance: 8000
-                    });
-        
-                    customer.save().then(result => {
-                        res.status(200).json({
-                            message: 'User with id [' + result._id + '] created',
-                            createdUser:{
-                                userID : result._id,
-                                userName: result.name,
-                                userEmail: result.email,
-                                userSecurityPin: result.securitypin,
-                                balance : result.balance,
-                            }
-                        });
-                    }). catch(err => {
-                        res.status(500).json({
-                            error: err
-                        });
-                    });
-                }
-            });
-        }
-    });
-});
-
-router.post('/login', (req, res, next) => {
-    Customer.find({phonenumber : req.body.phonenumber}).exec().then(user => {
-        if(user.length < 1) {
-            return res.status(401).json({
-                message: "Auth Failed!"
+//Router for customers to create Tabungan Online
+router.post('/createtabunganOnline', (req, res, next) => {
+    Customer.findOne({nik : req.body.nik}).exec().then(customer => {
+        if(customer){
+            const customer = new Customer({
+                name : req.body.name,
+                gender : req.body.gender,
+                phonenumber : req.body.phonenumber,
+                nama_ibu : req.body.nama_ibu,
+                kota_domisili : req.body.kota_domisili,
+                email: req.body.email,
+                birthplace: req.body.birthplace,
+                birthdate : req.body.birthdate,
+                religion : req.body.religion,
+                marriedstatus: req.body.marriedstatus,
+                lasteducation : req.body.lasteducation,
+                address : req.body.address,
+                job : req.body.job
+            })
+            Customer.update({nik : req.body.nik}, customer).then(result=> {
+                res.status(200).json({
+                    message : "Data updated!"
+                })
+            })
+            .catch(err => {
+                res.status(500).json({
+                    error : err
+                })
             })
         }
-        bcrypt.compare(req.body.securitypin, user[0].securitypin, (err, result) => {
-            if(err){
-                return res.status(401).json({
-                    message: "Auth Failed!"
-                })
+        else if(!customer){
+            var ID = function (){
+                return Math.random().toString(36).substr(2, 12);
             }
-            if(result){
-                const token = jwt.sign({
-                    userID : user[0]._id,
-                    userName: user[0].name,
-                    userEmail: user[0].email,
-                    userPhonenumber : user[0].phonenumber
-                }, 'secret', {expiresIn : '1h'})
-                return res.status(200).json({
-                    message: "Auth Successfull!",
-                    token: token,
-                    status: 200,
-                    userPhonenumber : user[0].phonenumber,
-                    userName: user[0].name,
-                    userEmail: user[0].email
+
+            const customer = new Customer({
+                _id : new mongoose.Types.ObjectId(),
+                CIF : Math.floor((Math.random() * 99999999999) + 10000000000),
+                nik : req.body.nik,
+                name : req.body.name,
+                gender : req.body.gender,
+                phonenumber : req.body.phonenumber,
+                nama_ibu : req.body.nama_ibu,
+                kota_domisili : req.body.kota_domisili,
+                email: req.body.email,
+                birthplace: req.body.birthplace,
+                birthdate : req.body.birthdate,
+                religion : req.body.religion,
+                marriedstatus: req.body.marriedstatus,
+                lasteducation : req.body.lasteducation,
+                address : req.body.address,
+                job : req.body.job
+            })
+
+            customer.save().then(result => {
+                res.status(200).json({
+                    message : "Customer with [ id " + result.CIF + " ] is created",
+                    status : 200
                 })
-            }
-        })
+            }).catch(err => {
+                res.status(500).json({
+                    error : err
+                })
+            })
+        }
     })
 })
+
 
 module.exports = router;
