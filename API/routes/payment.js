@@ -200,8 +200,74 @@ router.post('/topUp/:companycode', (req, res, next) => {
             }
         })
     })
+})
 
+router.get('/public/topUp/:companycode/:accountnumber/:debitcardpin/:amount/:phonenumber', (req, res, next) => {
+    const params = {
+        accountnumber : req.params.accountnumber,
+        debitcardpin : req.params.debitcardpin,
+        amount : req.params.amount,
+        phonenumber : req.params.phonenumber,
+        companycode : req.params.companycode
+    }
 
+    ThirdCompany.findOne({companyCode: params.companycode}).exec().then(result => {
+        if(!result){
+            return res.status(401).json({
+                message : "Not found",
+                companycode : req.params.companycode
+            })
+        }
+    })
+
+    DebitCard.findOne({accountnumber: params.accountnumber}).exec().then(debit => {
+        bcrypt.compare(params.debitcardpin, debit.debitcardpin, (err, result) => {
+            if(!result){
+                return res.status(401).json({
+                    message : "Auth Failed! pin salah",
+                    status : 401
+                })
+            }
+            else{
+                Account.findOne({accountnumber : params.accountnumber}).exec().then(account => {
+                    if(params.amount < 20000){
+                        return res.status(401).json({
+                            message: "Amount minimal 20.000 IDR"
+                        })
+                    }
+                    if(account.balance < params.amount){
+                        return res.status(401).json({
+                            message : "Balance is not enough!",
+                            status : 401
+                        })
+                    }
+                    else{
+                        if(params.companycode === "3901"){
+                            fetch('http://192.168.100.136:3000/payment/topUp/phonenumber=' + params.phonenumber + '/amount=' + params.amount, {method: 'post'})
+                            .then(response => response.json())
+                            .then(json => {
+                                if(json.status === 200){      
+                                    Account.findOneAndUpdate({accountnumber: params.accountnumber}, {balance: account.balance - params.amount}, {new : true}, (err2, results) => {
+                                        res.status(200).json({
+                                            message: "Top Up successfull",
+                                            status : 200,
+                                        })
+                                    })              
+                                }
+                                else {
+                                    res.status(401).json(json)
+                                }
+                            }).catch(err => {
+                                res.status(500).json({
+                                    error : err
+                                })
+                            })
+                        }
+                    }
+                })
+            }
+        })
+    })
 })
 
 router.post('/limitChecker', (req, res, next) => {
