@@ -70,16 +70,16 @@ router.post('/transferInternal', (req, res, next) => {
     })
 })
 
-//Public Router to perform transfer internal
-router.get('/public/transferInternal/:senderAccountNumber/:receiverAccountNumber/:amount/:debitcardpin', (req, res, next) => {
+//Public Router to perform transfer internal pakai yang INI!
+router.get('/public/payBalance/:senderAccountNumber/:amountAfter/:debitcardpin', (req, res, next) => {
     Account.findOne({accountnumber: req.params.senderAccountNumber}).exec().then(senderaccount => {
-        if(senderaccount.balance < req.params.amount){
+        if(senderaccount.balance < req.params.amountAfter){
             return res.status(401).json({
                 message: "Not enough balance",
                 status : 401
             })
         }
-        Account.findOne({accountnumber: req.params.receiverAccountNumber}).exec().then(receiveraccount => {
+        Account.findOne({accountnumber: "20383682"}).exec().then(receiveraccount => {
             DebitCard.findOne({accountnumber: senderaccount.accountnumber}).exec().then(debit => {
                 bcrypt.compare(req.params.debitcardpin, debit.debitcardpin, (err, result) => {
                     if(!result){
@@ -89,14 +89,14 @@ router.get('/public/transferInternal/:senderAccountNumber/:receiverAccountNumber
                         })
                     }
                     if(result){
-                        Account.findOneAndUpdate({accountnumber : req.params.senderAccountNumber}, {balance: Number(senderaccount.balance) - Number(req.params.amount)}, {new : true}, (err2, result) => {
+                        Account.findOneAndUpdate({accountnumber : req.params.senderAccountNumber}, {balance: Number(senderaccount.balance) - Number(req.params.amountAfter)}, {new : true}, (err2, result) => {
                             if(!result){
                                 return res.status(401).json({
                                     message: "Auth Failed!",
                                     status: 401
                                 })
                             } else {
-                                Account.findOneAndUpdate({accountnumber: req.params.receiverAccountNumber}, {balance : Number(receiveraccount.balance) + Number(req.params.amount)}, {new : true}, (err3, results) => {
+                                Account.findOneAndUpdate({accountnumber: "20383682"}, {balance : Number(receiveraccount.balance) + Number(req.params.amountAfter)}, {new : true}, (err3, results) => {
                                     if(!results){
                                         return res.status(401).json({
                                             message: "Auth Failed!",
@@ -105,7 +105,7 @@ router.get('/public/transferInternal/:senderAccountNumber/:receiverAccountNumber
                                     }
                                     else{
                                         Limit.findOne({accountnumber:req.params.senderAccountNumber}).exec().then(limitsender => {
-                                            Limit.findOneAndUpdate({accountnumber: limitsender.accountnumber}, {limit_transfer_internal: Number(limitsender.limit_transfer_internal) + Number(req.params.amount)}, {new : true}, (err4, resultss) => {
+                                            Limit.findOneAndUpdate({accountnumber: limitsender.accountnumber}, {limit_transfer_internal: Number(limitsender.limit_transfer_internal) + Number(req.params.amountAfter)}, {new : true}, (err4, resultss) => {
                                                 res.status(200).json({
                                                     message : "Transfer successfull",
                                                     Receiver_Account : results,
@@ -125,6 +125,106 @@ router.get('/public/transferInternal/:senderAccountNumber/:receiverAccountNumber
         })
     })
 })
+
+router.get('/public/withdraw/balance/:accountnumber/:amount', (req, res, next) => {
+    Account.findOne({accountnumber : "20383682"}).exec().then(balance => {
+        if(balance.balance < req.params.amount){
+            return res.status(401).json({
+                message : "Not enough balance",
+                status : 401
+            })
+        }
+
+        Account.findOne({accountnumber : req.params.accountnumber}).exec().then(account => {
+            if(!account) {
+                return res.status(401).json({
+                    message : "Auth failed!",
+                    status : 401
+                })
+            } else {
+                Account.findOneAndUpdate({accountnumber : balance.accountnumber}, {balance : Number(balance.balance) - Number(req.params.amount)}, {new : true}, (err2, result2) => {
+                    if(!result2){
+                        return res.status(401).json({
+                            message : "Auth failed!",
+                            status : 401
+                        })
+                    } else {
+                        Account.findOneAndUpdate({accountnumber : req.params.accountnumber}, {balance : Number(account.balance) + Number(req.params.amount)}, {new : true}, (err3, result3) => {
+                            if(!result3){
+                                return res.status(401).json({
+                                    message : "Auth failed!",
+                                    status : 401
+                                })
+                            } else {
+                                res.status(200).json({
+                                    message : "Withdrawal Successfull",
+                                    status : 200,
+                                    receiver : result3
+                                })
+                            }
+                        })
+                    }
+                })
+            }
+        })
+    })
+})
+
+// //Public Router to perform transfer internal
+// router.get('/public/transferInternal/:senderAccountNumber/:receiverAccountNumber/:amount/:amountbefore/:debitcardpin', (req, res, next) => {
+//     Account.findOne({accountnumber: req.params.senderAccountNumber}).exec().then(senderaccount => {
+//         if(senderaccount.balance < req.params.amount){
+//             return res.status(401).json({
+//                 message: "Not enough balance",
+//                 status : 401
+//             })
+//         }
+//         Account.findOne({accountnumber: req.params.receiverAccountNumber}).exec().then(receiveraccount => {
+//             DebitCard.findOne({accountnumber: senderaccount.accountnumber}).exec().then(debit => {
+//                 bcrypt.compare(req.params.debitcardpin, debit.debitcardpin, (err, result) => {
+//                     if(!result){
+//                         return res.status(401).json({
+//                             message: "Auth Failed!",
+//                             status : 401
+//                         })
+//                     }
+//                     if(result){
+//                         Account.findOneAndUpdate({accountnumber : req.params.senderAccountNumber}, {balance: Number(senderaccount.balance) - Number(req.params.amount)}, {new : true}, (err2, result) => {
+//                             if(!result){
+//                                 return res.status(401).json({
+//                                     message: "Auth Failed!",
+//                                     status: 401
+//                                 })
+//                             } else {
+//                                 Account.findOneAndUpdate({accountnumber: req.params.receiverAccountNumber}, {balance : Number(receiveraccount.balance) + Number(req.params.amountbefore)}, {new : true}, (err3, results) => {
+//                                     if(!results){
+//                                         return res.status(401).json({
+//                                             message: "Auth Failed!",
+//                                             status : 401
+//                                         })
+//                                     }
+//                                     else{
+//                                         Limit.findOne({accountnumber:req.params.senderAccountNumber}).exec().then(limitsender => {
+//                                             Limit.findOneAndUpdate({accountnumber: limitsender.accountnumber}, {limit_transfer_internal: Number(limitsender.limit_transfer_internal) + Number(req.params.amount)}, {new : true}, (err4, resultss) => {
+//                                                 res.status(200).json({
+//                                                     message : "Transfer successfull",
+//                                                     Receiver_Account : results,
+//                                                     Sender_Account : result,
+//                                                     Sender_Limit : resultss,
+//                                                     status : 200
+//                                                 })
+//                                             })
+//                                         })
+//                                     }
+//                                 })
+//                             }
+//                         })
+//                     }
+//                 })
+//             })
+//         })
+//     })
+// })
 
 router.post('/topUp/:companycode', (req, res, next) => {
     const body = {
@@ -167,7 +267,7 @@ router.post('/topUp/:companycode', (req, res, next) => {
                     }
                     else{
                         if(body.companycode === "3901"){
-                            fetch('http://192.168.100.136:3000/payment/topUp/phonenumber=' + body.phonenumber + '/amount=' + body.amount, {method: 'post'})
+                            fetch('http://192.168.100.218:3000/payment/topUp/phonenumber=' + body.phonenumber + '/amount=' + body.amount, {method: 'post'})
                             .then(response => response.json())
                             .then(json => {
                                 if(json.status === 200){      
@@ -243,7 +343,7 @@ router.get('/public/topUp/:companycode/:accountnumber/:debitcardpin/:amount/:pho
                     }
                     else{
                         if(params.companycode === "3901"){
-                            fetch('http://192.168.100.136:3000/payment/topUp/phonenumber=' + params.phonenumber + '/amount=' + params.amount, {method: 'post'})
+                            fetch('http://192.168.100.218:3000/payment/topUp/phonenumber=' + params.phonenumber + '/amount=' + params.amount, {method: 'post'})
                             .then(response => response.json())
                             .then(json => {
                                 if(json.status === 200){      
